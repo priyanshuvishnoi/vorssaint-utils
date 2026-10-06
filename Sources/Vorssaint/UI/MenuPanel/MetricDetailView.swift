@@ -151,6 +151,7 @@ struct MetricDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(DefaultsKey.temperatureUnit) private var temperatureUnit = TemperatureUnit.celsius.rawValue
     @AppStorage(DefaultsKey.monitorInterval) private var monitorInterval = 2
+    @AppStorage(DefaultsKey.networkSpeedUnit) private var speedUnitRaw = "bits"
     let kind: MetricDetailKind
     @State private var processRows: [ProcessUsage] = []
     @State private var processRowsLoading = false
@@ -261,7 +262,9 @@ struct MetricDetailView: View {
         let down = monitor.snapshot.netDownHistory
         let up = monitor.snapshot.netUpHistory
         if down.count >= 2 || up.count >= 2 {
-            let peak = MetricFormat.graphCeiling(max(down.max() ?? 0, up.max() ?? 0, 1), unitStep: 1024)
+            let inBits = speedUnitRaw != "bytes"
+            let peak = MetricFormat.networkGraphCeiling(max(down.max() ?? 0, up.max() ?? 0, 1),
+                                                        inBits: inBits)
             ZStack {
                 Sparkline(values: down, color: .accentColor, maxValue: peak, showsZeroBaseline: true)
                 Sparkline(values: up,
@@ -270,7 +273,7 @@ struct MetricDetailView: View {
                           fillOpacity: 0.08)
             }
             .frame(height: 38)
-            .graphCeilingLabel(MetricFormat.bytesPerSec(peak))
+            .graphCeilingLabel(MetricFormat.networkRate(peak, inBits: inBits))
         }
     }
 

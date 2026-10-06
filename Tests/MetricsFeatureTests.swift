@@ -87,6 +87,13 @@ enum MetricsFeatureTests {
         expectEqual(MetricFormat.networkRateCompact(40_000, inBits: true), "320Kb", "compact network rate in bits")
         expectEqual(MetricFormat.networkRateCompact(320 * 1024, inBits: false), "320K", "compact network rate in bytes")
 
+        let bitsCeiling = MetricFormat.networkGraphCeiling(2_000, inBits: true)
+        suite.expect(bitsCeiling == 2_500, "bit graph ceiling rounds in bits and plots in bytes")
+        expectEqual(MetricFormat.networkRate(bitsCeiling, inBits: true), "20 Kbps", "bit graph ceiling label")
+        let bytesCeiling = MetricFormat.networkGraphCeiling(1_500, inBits: false)
+        suite.expect(bytesCeiling == 2_048, "byte graph ceiling keeps the 1024 steps")
+        expectEqual(MetricFormat.networkRate(bytesCeiling, inBits: false), "2.0 KB/s", "byte graph ceiling label")
+
         expectEqual(MetricFormat.bitsPerSecCompact(0), "0b", "bits zero")
         expectEqual(MetricFormat.bitsPerSecCompact(.nan), "0b", "bits non-finite")
         expectEqual(MetricFormat.bitsPerSecCompact(100), "800b", "bits sub-kilobit")

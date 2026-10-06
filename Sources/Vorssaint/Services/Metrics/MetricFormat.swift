@@ -329,6 +329,15 @@ enum MetricFormat {
         return peak
     }
 
+    /// A network graph ceiling in bytes per second that lands on a round
+    /// number in the chosen unit, so `networkRate` labels it as "20 Kbps"
+    /// or "2.0 KB/s" rather than an awkward conversion of the other.
+    static func networkGraphCeiling(_ peakBytesPerSecond: Double,
+                                    inBits: Bool = networkSpeedInBits) -> Double {
+        guard inBits else { return graphCeiling(peakBytesPerSecond, unitStep: 1024) }
+        return graphCeiling(peakBytesPerSecond * 8, unitStep: 1000) / 8
+    }
+
     /// Power, e.g. "8.5 W" / "23 W" (one decimal under 10, none above).
     static func watts(_ value: Double) -> String {
         let magnitude = abs(value)

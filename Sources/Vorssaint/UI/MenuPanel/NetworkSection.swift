@@ -245,7 +245,8 @@ struct NetworkSection: View {
     private var graph: some View {
         let down = monitor.snapshot.netDownHistory
         let up = monitor.snapshot.netUpHistory
-        let peak = MetricFormat.graphCeiling(max(down.max() ?? 0, up.max() ?? 0, 1), unitStep: 1024)
+        let peak = MetricFormat.networkGraphCeiling(max(down.max() ?? 0, up.max() ?? 0, 1),
+                                                    inBits: speedInBits)
         return ZStack {
             Sparkline(values: down, color: .accentColor, maxValue: peak, showsZeroBaseline: true)
             Sparkline(values: up,
@@ -254,7 +255,7 @@ struct NetworkSection: View {
                       fillOpacity: 0.08)
         }
         .frame(height: 30)
-        .graphCeilingLabel(MetricFormat.bytesPerSec(peak))
+        .graphCeilingLabel(MetricFormat.networkRate(peak, inBits: speedInBits))
     }
 
     @ViewBuilder
