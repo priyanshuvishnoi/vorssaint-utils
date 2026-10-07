@@ -81,11 +81,44 @@ enum MetricsFeatureTests {
         expectEqual(MetricFormat.bitsPerSec(1_500), "12 Kbps", "bit rate 12 Kbps")
         expectEqual(MetricFormat.bitsPerSec(1_200_000), "9.6 Mbps", "bit rate 9.6 Mbps")
         expectEqual(MetricFormat.bitsPerSec(125_000_000), "1.0 Gbps", "bit rate gigabit")
+        expectEqual(MetricFormat.bitsPerSec(124.9), "999 bps", "bit rate keeps 999 bps")
+        expectEqual(MetricFormat.bitsPerSec(124.95), "1.0 Kbps", "bit rate promotes the rounded kilobit edge")
+        expectEqual(MetricFormat.bitsPerSec(124_950), "1.0 Mbps", "bit rate promotes the rounded megabit edge")
+        expectEqual(MetricFormat.bitsPerSec(.infinity), "0 bps", "bit rate non-finite")
 
         expectEqual(MetricFormat.networkRate(1_500, inBits: true), "12 Kbps", "network rate in bits")
         expectEqual(MetricFormat.networkRate(1_500 * 1024, inBits: false), "1.5 MB/s", "network rate in bytes")
         expectEqual(MetricFormat.networkRateCompact(40_000, inBits: true), "320Kb", "compact network rate in bits")
         expectEqual(MetricFormat.networkRateCompact(320 * 1024, inBits: false), "320K", "compact network rate in bytes")
+
+        // Someone who never picked a unit keeps the bytes they always saw,
+        // and a stray value does not switch them to bits either.
+        let savedSpeedUnit = UserDefaults.standard.object(forKey: DefaultsKey.networkSpeedUnit)
+        UserDefaults.standard.removeObject(forKey: DefaultsKey.networkSpeedUnit)
+        expectEqual(MetricFormat.networkRateCompact(320 * 1024), "320K", "network rate keeps bytes with no unit saved")
+        UserDefaults.standard.set("bit", forKey: DefaultsKey.networkSpeedUnit)
+        expectEqual(MetricFormat.networkRate(1_500 * 1024), "1.5 MB/s", "an unknown network unit reads as bytes")
+        UserDefaults.standard.set(NetworkSpeedUnit.bits.rawValue, forKey: DefaultsKey.networkSpeedUnit)
+        expectEqual(MetricFormat.networkRateCompact(40_000), "320Kb", "network rate follows a saved choice of bits")
+        if let savedSpeedUnit {
+            UserDefaults.standard.set(savedSpeedUnit, forKey: DefaultsKey.networkSpeedUnit)
+        } else {
+            UserDefaults.standard.removeObject(forKey: DefaultsKey.networkSpeedUnit)
+        }
+
+        // The menu bar sizes the rate block from five monospaced characters
+        // after the arrow, the same in both units, so no compact rate may
+        // print longer in either one.
+        var widestRate = ""
+        var sweptRate = 0.1
+        while sweptRate < 1e14 {
+            for inBits in [false, true] {
+                let text = MetricFormat.networkRateCompact(sweptRate, inBits: inBits)
+                if text.count > widestRate.count { widestRate = text }
+            }
+            sweptRate *= 1.01
+        }
+        suite.expect(widestRate.count == 5, "compact network rates fit the reserved menu bar block, widest \(widestRate)")
 
         let bitsCeiling = MetricFormat.networkGraphCeiling(2_000, inBits: true)
         suite.expect(bitsCeiling == 2_500, "bit graph ceiling rounds in bits and plots in bytes")

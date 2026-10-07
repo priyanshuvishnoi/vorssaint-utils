@@ -256,9 +256,10 @@ enum MetricFormat {
     }
 
     /// Whether live network speeds show bits ("12 Mbps") or bytes ("1.5 MB/s").
+    /// Only an explicit choice of bits reads as bits, so someone who never
+    /// picked a unit keeps the bytes they always saw.
     static var networkSpeedInBits: Bool {
-        get { UserDefaults.standard.string(forKey: DefaultsKey.networkSpeedUnit) != "bytes" }
-        set { UserDefaults.standard.set(newValue ? "bits" : "bytes", forKey: DefaultsKey.networkSpeedUnit) }
+        UserDefaults.standard.string(forKey: DefaultsKey.networkSpeedUnit) == NetworkSpeedUnit.bits.rawValue
     }
 
     /// A network speed in the chosen unit. Used in the panel.
@@ -277,7 +278,10 @@ enum MetricFormat {
         let units = ["bps", "Kbps", "Mbps", "Gbps", "Tbps", "Pbps"]
         var value = bytesPerSecond.isFinite ? max(0, bytesPerSecond) * 8 : 0
         var index = 0
-        while value >= 1000, index < units.count - 1 {
+        // Promote on the number as printed, so 999.6 Kbps reads "1.0 Mbps"
+        // rather than "1000 Kbps", like the byte rates and the compact form.
+        // Under ten the decimal is kept and can never print as 1000.
+        while index < units.count - 1, value.rounded() >= 1000 {
             value /= 1000
             index += 1
         }
@@ -496,6 +500,13 @@ enum MetricFormat {
 enum TemperatureUnit: String {
     case celsius
     case fahrenheit
+}
+
+/// How live network speeds read: bytes ("1.5 MB/s"), the default, or bits
+/// ("12 Mbps"), the way connection speeds are usually quoted.
+enum NetworkSpeedUnit: String {
+    case bytes
+    case bits
 }
 
 /// Fixed-size ring of recent samples (oldest → newest) for the history graphs.

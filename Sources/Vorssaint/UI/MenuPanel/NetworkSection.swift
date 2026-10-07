@@ -19,7 +19,7 @@ struct NetworkSection: View {
     @AppStorage(DefaultsKey.monitorNetTest) private var netTest = true
     @AppStorage(DefaultsKey.monitorNetAddresses) private var netAddresses = true
     @AppStorage(DefaultsKey.panelNetworkOrder) private var networkOrderRaw = ""
-    @AppStorage(DefaultsKey.networkSpeedUnit) private var speedUnitRaw = "bits"
+    @AppStorage(DefaultsKey.networkSpeedUnit) private var speedUnit = NetworkSpeedUnit.bytes
     @State private var draggingBlock: Block?
     @State private var appRows: [ProcessUsage] = []
     @State private var appRowsLoading = false
@@ -198,15 +198,18 @@ struct NetworkSection: View {
         }
     }
 
-    private var speedInBits: Bool { speedUnitRaw != "bytes" }
+    private var speedInBits: Bool { speedUnit == .bits }
 
     /// Flips every live network speed (panel, menu bar, island) between
-    /// bits and bytes per second. The label shows the unit in use.
+    /// bits and bytes per second. The label shows the unit in use. Its
+    /// symbol alone would not tell VoiceOver or a hover what it changes.
     private var speedUnitToggle: some View {
-        Button {
-            speedUnitRaw = speedInBits ? "bytes" : "bits"
+        let title = FeatureStrings.monitorLayout(l10n.language).networkSpeedUnit
+        let symbol = speedInBits ? "bit/s" : "B/s"
+        return Button {
+            speedUnit = speedInBits ? .bytes : .bits
         } label: {
-            Text(speedInBits ? "bit/s" : "B/s")
+            Text(symbol)
                 .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 7)
@@ -218,8 +221,9 @@ struct NetworkSection: View {
         }
         .buttonStyle(.plain)
         .fixedSize()
-        .help(speedInBits ? "bit/s → B/s" : "B/s → bit/s")
-        .accessibilityLabel(speedInBits ? "bit/s" : "B/s")
+        .help("\(title) · \(speedInBits ? "bit/s → B/s" : "B/s → bit/s")")
+        .accessibilityLabel(title)
+        .accessibilityValue(symbol)
     }
 
     private func rateColumn(icon: String, label: String, value: Double?, color: Color) -> some View {
